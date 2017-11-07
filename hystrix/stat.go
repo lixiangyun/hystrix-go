@@ -21,7 +21,16 @@ func (s *Stat) Reset(time int) {
 	s.failure = 0
 }
 
+func (s *Stat) Add(s1 Stat) {
+	s.success += s1.success
+	s.failure += s1.failure
+	s.reject += s1.reject
+	s.timeout += s1.timeout
+}
+
 type Bucket struct {
+	lasttime int
+
 	length int
 	stat   []Stat
 
@@ -52,6 +61,7 @@ func (b *Bucket) Stat(success, failure, timeout, reject int) {
 	defer b.lock.Unlock()
 
 	tm := time.Now().Second()
+
 	index := tm % b.length
 
 	stat := &b.stat[index]
@@ -66,6 +76,29 @@ func (b *Bucket) Stat(success, failure, timeout, reject int) {
 	stat.reject += reject
 }
 
+// input value : [0~100]
 
+func (b *Bucket) FailRate(rate int) bool {
+	b.lock.Lock()
+	defer b.lock.Unlock()
 
-func (b *Bucket)
+	tm := time.Now().Second()
+	var temp Stat
+
+	for _, v := range b.stat {
+		if v.time+b.length < tm {
+			continue
+		}
+		temp.Add(v)
+	}
+
+	failrate := (temp.failure * 100) / (temp.success + temp.failure)
+
+	b.lasttime = tm
+
+	if failrate >= rate {
+		return true
+	} else {
+		return false
+	}
+}
