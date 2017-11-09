@@ -1,7 +1,6 @@
 package hystrix
 
 import (
-	"sync"
 	"time"
 )
 
@@ -33,32 +32,24 @@ type Bucket struct {
 
 	length int
 	stat   []Stat
-
-	lock *sync.RWMutex
 }
 
 func NewBucket(length int) *Bucket {
 
 	b := new(Bucket)
 	b.stat = make([]Stat, length)
-	b.lock = new(sync.RWMutex)
 	b.length = length
 
 	return b
 }
 
 func (b *Bucket) Reset() {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
 	for i, _ := range b.stat {
 		b.stat[i].Reset(0)
 	}
 }
 
 func (b *Bucket) Stat(success, failure, timeout, reject int) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
 
 	tm := time.Now().Second()
 
@@ -79,8 +70,6 @@ func (b *Bucket) Stat(success, failure, timeout, reject int) {
 // input value : [0~100]
 
 func (b *Bucket) FailRate(rate int) bool {
-	b.lock.Lock()
-	defer b.lock.Unlock()
 
 	tm := time.Now().Second()
 	var temp Stat
